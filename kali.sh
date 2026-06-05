@@ -17,86 +17,31 @@ W='\033[1;37m'
 D='\033[2;37m'
 G='\033[0;32m'
 N='\033[0m'
-HIDE='\033[?25l'
-SHOW='\033[?25h'
 
-trap "echo -e '${SHOW}${N}'; exit" INT TERM
-
-tput_cols()  { tput cols  2>/dev/null || echo 80; }
-tput_lines() { tput lines 2>/dev/null || echo 24; }
-
-matrix_rain() {
-  echo -e "${HIDE}"
-  local cols lines duration=3 start
-  cols=$(tput_cols)
-  lines=$(tput_lines)
-  start=$(date +%s)
-  local chars="ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789"
-  local clen=${#chars}
-  tput clear
-  while true; do
-    local now; now=$(date +%s)
-    [ $((now - start)) -ge $duration ] && break
-    local col=$((RANDOM % cols))
-    local row=$((RANDOM % lines))
-    local idx=$((RANDOM % clen))
-    local c="${chars:$idx:1}"
-    tput cup $row $col
-    if [ $((RANDOM % 5)) -eq 0 ]; then
-      echo -ne "${W}${c}${N}"
-    else
-      echo -ne "${G}${c}${N}"
-    fi
-    sleep 0.01
-  done
-  tput clear
-  echo -e "${SHOW}"
-}
-
-typewriter() {
-  local text="$1"
-  local delay="${2:-0.01}"
-  local i=0
-  while [ $i -lt ${#text} ]; do
-    echo -ne "${text:$i:1}"
-    i=$((i+1))
-    sleep "$delay"
-  done
-}
+trap "echo -e '${N}'; exit" INT TERM
 
 show_ascii() {
   echo -e "${RB}"
-  local lines=(
-"⠀⠀⠀⠀⠠⠤⠤⠤⠤⠤⣤⣤⣤⣄⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠛⠛⠿⢶⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
-"⠀⠀⢀⣀⣀⣠⣤⣤⣴⠶⠶⠶⠶⠶⠶⠶⠶⠶⠿⠿⢿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
-"⠚⠛⠉⠉⠉⠀⠀⠀⠀⠀⠀⢀⣀⣀⣤⡴⠶⠶⠿⠿⠿⣧⡀⠀⠀⠀⠤⢄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⢀⣠⡴⠞⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⢸⣿⣷⣶⣦⣤⣄⣈⡑⢦⣀⠀⠀⠀⠀⠀⠀⠀⠀"
-"⠀⠀⠀⠀⣠⠔⠚⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⡿⠟⠉⠉⠉⠉⠙⠛⠿⣿⣮⣷⣤⠀⠀⠀⠀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣯⣧⡀⠀⠀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠻⢷⡤⠀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣦⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠙⠛⠛⠻⠿⠿⣿⣶⣶⣦⣄⣀⠀⠀⠀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠻⣿⣯⡛⠻⢦⡀⠀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣆⠀⠙⢆⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢻⣆⠀⠈⢣"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⡆⠀⠈"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⡀⠀"
-"⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠃⠀"
-  )
-  for line in "${lines[@]}"; do
-    typewriter "$line" 0.003
-    echo
-  done
+  echo "⠀⠀⠀⠀⠠⠤⠤⠤⠤⠤⣤⣤⣤⣄⣀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠛⠛⠿⢶⣤⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+  echo "⠀⠀⢀⣀⣀⣠⣤⣤⣴⠶⠶⠶⠶⠶⠶⠶⠶⠶⠿⠿⢿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+  echo "⠚⠛⠉⠉⠉⠀⠀⠀⠀⠀⠀⢀⣀⣀⣤⡴⠶⠶⠿⠿⠿⣧⡀⠀⠀⠀⠤⢄⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⢀⣠⡴⠞⠛⠉⠁⠀⠀⠀⠀⠀⠀⠀⢸⣿⣷⣶⣦⣤⣄⣈⡑⢦⣀⠀⠀⠀⠀⠀⠀⠀⠀"
+  echo "⠀⠀⠀⠀⣠⠔⠚⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣾⡿⠟⠉⠉⠉⠉⠙⠛⠿⣿⣮⣷⣤⠀⠀⠀⠀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⡿⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⢻⣯⣧⡀⠀⠀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠻⢷⡤⠀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢿⣿⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣦⣤⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠙⠛⠛⠻⠿⠿⣿⣶⣶⣦⣄⣀⠀⠀⠀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠻⣿⣯⡛⠻⢦⡀⠀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⢿⣆⠀⠙⢆⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⢻⣆⠀⠈⢣"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⡆⠀⠈"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⡀⠀"
+  echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠃⠀"
   echo -e "${N}"
-  sleep 0.2
-  echo -e "${W}"
-  typewriter "        K A L I - T E R M U X   T O O L S" 0.04
-  echo -e "${N}"
-  echo -e "${D}"
-  typewriter "              by LinuxKyaev  •  v2.0" 0.03
-  echo -e "${N}\n"
+  echo -e "${W}        K A L I - T E R M U X   T O O L S${N}"
+  echo -e "${D}              by LinuxKyaev  •  v2.0${N}\n"
 }
 
 progress_bar() {
@@ -113,18 +58,15 @@ progress_bar() {
 
 install_deps() {
   echo -e "\n${R}  [*]${W} Vérification des dépendances...${N}\n"
-  sleep 0.4
   local deps=("proot" "wget" "curl" "tar" "git")
   for dep in "${deps[@]}"; do
     echo -ne "  ${R}+${N} ${W}${dep}${D}..."
-    sleep 0.2
     if command -v "$dep" &>/dev/null; then
       echo -e " ${R}ok${N}"
     else
       pkg install -y "$dep" &>/dev/null 2>&1
       command -v "$dep" &>/dev/null && echo -e " ${R}installé${N}" || echo -e " ${W}échec${N}"
     fi
-    sleep 0.1
   done
   echo
 }
@@ -150,13 +92,11 @@ download_kali() {
   mkdir -p "$KALI_DIR"
   echo -e "  ${R}[*]${W} Architecture : ${R}${ARCH}${N}"
   echo -e "  ${R}[*]${W} Source       : ${D}${URL}${N}\n"
-  sleep 0.5
 
   wget -q --show-progress -O "$KALI_DIR/rootfs.tar.xz" "$URL"
   echo -e "\n  ${R}[✓]${W} Téléchargement terminé${N}"
 
   progress_bar "Extraction du rootfs"
-  # --no-same-owner évite les erreurs de permission sous Termux
   cd "$KALI_DIR" && tar --no-same-owner -xf rootfs.tar.xz
   local TAR_EXIT=$?
   rm -f rootfs.tar.xz
@@ -168,7 +108,6 @@ download_kali() {
 
   progress_bar "Configuration de l'environnement"
   echo -e "\n  ${R}[✓]${W} Kali Linux installé !${N}\n"
-  sleep 1
 }
 
 get_rootfs() {
@@ -182,36 +121,21 @@ launch_kali() {
     sleep 1; return
   fi
 
-  # Vérifie que bash existe dans le rootfs
   if [ ! -f "$ROOTFS/bin/bash" ]; then
-    echo -e "\n  ${W}[!]${R} Rootfs corrompu : /bin/bash introuvable dans${N}"
-    echo -e "  ${D}${ROOTFS}${N}"
-    echo -e "  ${W}Supprime ~/kali-fs et réinstalle.${N}"
+    echo -e "\n  ${W}[!]${R} Rootfs corrompu : /bin/bash introuvable.${N}"
+    echo -e "  ${D}Supprime ~/kali-fs et réinstalle.${N}"
     sleep 3; return
   fi
 
   clear
   show_ascii
 
-  local frames=("▓░░░░░░░░░" "▓▓░░░░░░░░" "▓▓▓░░░░░░░" "▓▓▓▓░░░░░░" "▓▓▓▓▓░░░░░" "▓▓▓▓▓▓░░░░" "▓▓▓▓▓▓▓░░░" "▓▓▓▓▓▓▓▓░░" "▓▓▓▓▓▓▓▓▓░" "▓▓▓▓▓▓▓▓▓▓")
-  echo -ne "\n  ${R}Démarrage  "
-  for f in "${frames[@]}"; do
-    echo -ne "\r  ${R}Démarrage  [${W}${f}${R}]${N}"
-    sleep 0.12
-  done
-  echo -e "\r  ${R}Démarrage  [${W}▓▓▓▓▓▓▓▓▓▓${R}]  ${W}PRÊT${N}\n"
-  sleep 0.3
-
   echo -ne "  ${R}Pseudo : ${W}"
   read -r USERNAME
   [ -z "$USERNAME" ] && USERNAME="user"
   echo -e "${N}"
-  sleep 0.4
   echo -e "  ${D}Connexion en cours...${N}"
-  sleep 0.6
 
-  # FIX PRINCIPAL : on appelle /bin/bash directement au lieu de passer
-  # par /usr/bin/env qui peut être absent dans certains rootfs Kali minimal
   proot \
     --link2symlink \
     -0 \
@@ -242,7 +166,6 @@ update_kali() {
   clear
   show_ascii
   echo -e "${R}  [*]${W} Mise à jour de Kali Linux...${N}\n"
-  sleep 0.5
   proot \
     --link2symlink \
     -0 \
@@ -270,11 +193,9 @@ tools_menu() {
     done
 
     for tool in "${tool_keys[@]}"; do
-      sleep 0.07
       echo -e "  ${R}[${W}${idx}${R}]${N}  ${W}${tool}${N}"
       idx=$((idx+1))
     done
-    sleep 0.07
     echo -e "  ${R}[${W}b${R}]${N}  ${D}Retour${N}"
     echo -e "\n${R}  ──────────────────────────────────${N}"
     echo -ne "\n  ${R}» ${W}"
@@ -288,7 +209,6 @@ tools_menu() {
       if [ "$idx" -eq "$CHOICE" ] 2>/dev/null; then
         local url="${TOOLS[$tool]}"
         echo -e "\n  ${R}[*]${W} Installation de ${R}${tool}${N}..."
-        sleep 0.3
         if [ -n "$url" ]; then
           mkdir -p "$HOME/tools"
           git clone "$url" "$HOME/tools/$tool" 2>&1 | \
@@ -324,9 +244,9 @@ main_menu() {
     clear
     show_ascii
     echo -e "${R}  ──────────────────────────────────${N}\n"
-    sleep 0.1; echo -e "  ${R}[${W}1${R}]${N}  ${W}Lancer Kali Linux${N}"
-    sleep 0.1; echo -e "  ${R}[${W}2${R}]${N}  ${W}Mettre à jour Kali${N}"
-    sleep 0.1; echo -e "  ${R}[${W}3${R}]${N}  ${W}Sortir${N}"
+    echo -e "  ${R}[${W}1${R}]${N}  ${W}Lancer Kali Linux${N}"
+    echo -e "  ${R}[${W}2${R}]${N}  ${W}Mettre à jour Kali${N}"
+    echo -e "  ${R}[${W}3${R}]${N}  ${W}Sortir${N}"
     echo -e "\n${R}  ──────────────────────────────────${N}"
     echo -ne "\n  ${R}» ${W}"
     read -r OPT
@@ -335,31 +255,35 @@ main_menu() {
     case "$OPT" in
       1) launch_kali ;;
       2) update_kali ;;
-      3)
-        clear
-        show_ascii
-        echo -ne "\n  ${R}"
-        typewriter "Fermeture de KaliTermux..." 0.04
-        echo -e "${N}\n  ${D}À bientôt.${N}\n"
-        sleep 1
-        exit 0
-        ;;
+      3) clear; show_ascii; echo -e "\n  ${D}À bientôt.${N}\n"; exit 0 ;;
       help)   help_cmd; echo -ne "  ${D}[Entrée]${N}"; read -r ;;
       tools)  tools_menu ;;
       update) update_kali ;;
       clear)  clear ;;
       exit)   exit 0 ;;
-      *)      echo -e "\n  ${W}[!]${R} Commande invalide.${N}"; sleep 0.8 ;;
+      *)      echo -e "\n  ${W}[!]${R} Commande invalide.${N}"; sleep 0.5 ;;
     esac
   done
 }
 
-# ── Démarrage ──────────────────────────────────────────
-clear
-matrix_rain
+install_menu() {
+  clear
+  show_ascii
+  echo -e "${R}  ──────────────────────────────────${N}\n"
+  echo -e "  ${R}[${W}1${R}]${N}  ${W}Télécharger Kali Linux${N}"
+  echo -e "\n${R}  ──────────────────────────────────${N}"
+  echo -ne "\n  ${R}» ${W}"
+  read -r OPT
+  echo -ne "${N}"
+  case "$OPT" in
+    1) download_kali ;;
+    exit) exit 0 ;;
+    *) echo -e "\n  ${W}[!]${R} Option invalide.${N}"; sleep 1; install_menu ;;
+  esac
+}
+
 clear
 show_ascii
-sleep 0.5
 
 ROOTFS=$(get_rootfs)
 if [ -z "$ROOTFS" ]; then
