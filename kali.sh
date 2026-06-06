@@ -62,7 +62,7 @@ progress_bar() {
 
 check_installed() {
   command -v proot-distro &>/dev/null || return 1
-  proot-distro list 2>/dev/null | grep -qw "ubuntu"
+  proot-distro list 2>/dev/null | grep -qi "ubuntu"
 }
 
 check_proot() {
@@ -81,8 +81,12 @@ download_kali() {
     sleep 1
     return 0
   fi
+  progress_bar "Téléchargement de l'environnement"
   proot-distro install ubuntu
-  check_installed || return 1
+  if ! check_installed; then
+    echo -e "\n ${R}[✗] Installation échouée. Vérifie ta connexion.${N}"
+    return 1
+  fi
   progress_bar "Finalisation"
   sleep 1
   return 0
