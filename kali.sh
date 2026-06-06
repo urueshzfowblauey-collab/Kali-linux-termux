@@ -20,7 +20,7 @@ W='\033[1;37m'
 D='\033[2;37m'
 N='\033[0m'
 
-trap "echo -e '${N}'; exit" INT TERM
+trap "echo -e '${N}'; tput cnorm 2>/dev/null; exit" INT TERM
 
 show_ascii() {
   echo -e "${RB}"
@@ -107,6 +107,11 @@ update_kali() {
 }
 
 tools_menu() {
+  local tool_keys=()
+  for tool in "${!TOOLS[@]}"; do
+    tool_keys+=("$tool")
+  done
+
   while true; do
     clear
     show_ascii
@@ -115,11 +120,6 @@ tools_menu() {
     echo -e "${R}  ──────────────────────────────────${N}\n"
 
     local idx=1
-    local tool_keys=()
-    for tool in "${!TOOLS[@]}"; do
-      tool_keys+=("$tool")
-    done
-
     for tool in "${tool_keys[@]}"; do
       echo -e "  ${R}[${W}${idx}${R}]${N}  ${W}${tool}${N}"
       idx=$((idx+1))
@@ -132,9 +132,13 @@ tools_menu() {
 
     [ "$CHOICE" = "b" ] || [ "$CHOICE" = "B" ] && return
 
+    if ! [[ "$CHOICE" =~ ^[0-9]+$ ]]; then
+      echo -e "\n  ${W}[!]${R} Invalide.${N}"; sleep 0.5; continue
+    fi
+
     local idx=1
     for tool in "${tool_keys[@]}"; do
-      if [ "$idx" -eq "$CHOICE" ] 2>/dev/null; then
+      if [ "$idx" -eq "$CHOICE" ]; then
         echo -e "\n  ${R}[*]${W} Installation de ${R}${tool}${N}..."
         proot-distro login ubuntu -- bash -c "apt install -y ${tool}"
         echo -e "\n  ${R}[✓]${W} ${tool} installé${N}"
@@ -187,19 +191,22 @@ main_menu() {
 }
 
 install_menu() {
-  clear
-  show_ascii
-  echo -e "${R}  ──────────────────────────────────${N}\n"
-  echo -e "  ${R}[${W}1${R}]${N}  ${W}Installer Linux${N}"
-  echo -e "\n${R}  ──────────────────────────────────${N}"
-  echo -ne "\n  ${R}» ${W}"
-  read -r OPT
-  echo -ne "${N}"
-  case "$OPT" in
-    1) download_kali; main_menu ;;
-    exit) exit 0 ;;
-    *) echo -e "\n  ${W}[!]${R} Invalide.${N}"; sleep 1; install_menu ;;
-  esac
+  while true; do
+    clear
+    show_ascii
+    echo -e "${R}  ──────────────────────────────────${N}\n"
+    echo -e "  ${R}[${W}1${R}]${N}  ${W}Installer Linux${N}"
+    echo -e "\n${R}  ──────────────────────────────────${N}"
+    echo -ne "\n  ${R}» ${W}"
+    read -r OPT
+    echo -ne "${N}"
+    case "$OPT" in
+      1) download_kali; break ;;
+      exit) exit 0 ;;
+      *) echo -e "\n  ${W}[!]${R} Invalide.${N}"; sleep 1 ;;
+    esac
+  done
+  main_menu
 }
 
 clear
