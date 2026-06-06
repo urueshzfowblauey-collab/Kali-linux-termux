@@ -113,6 +113,72 @@ get_sys_info() {
   read -r
 }
 
+editor_menu() {
+  while true; do
+    clear
+    show_ascii
+    echo -e "${R} ──────────────────────────────────${N}"
+    echo -e "${W} ÉDITEUR DE TEXTE${N}"
+    echo -e "${R} ──────────────────────────────────${N}\n"
+    echo -e " ${R}[${W}1${R}]${N} ${W}nano${N}"
+    echo -e " ${R}[${W}2${R}]${N} ${W}vim${N}"
+    echo -e "\n ${R}[${W}b${R}]${N} ${D}Retour${N}"
+    echo -e "\n${R} ──────────────────────────────────${N}"
+    echo -ne "\n ${R}» ${W}"
+    read -r OPT
+    echo -ne "${N}"
+    case "$OPT" in
+      1)
+        echo -ne "\n ${W}Fichier à ouvrir (vide = nouveau) : ${N}"
+        read -r FICHIER
+        proot-distro login ubuntu -- bash -c "apt install -y nano -qq && nano ${FICHIER}"
+        ;;
+      2)
+        echo -ne "\n ${W}Fichier à ouvrir (vide = nouveau) : ${N}"
+        read -r FICHIER
+        proot-distro login ubuntu -- bash -c "apt install -y vim -qq && vim ${FICHIER}"
+        ;;
+      b|B) return ;;
+      *) sleep 0.5 ;;
+    esac
+  done
+}
+
+logs_menu() {
+  while true; do
+    clear
+    show_ascii
+    echo -e "${R} ──────────────────────────────────${N}"
+    echo -e "${W} LOGS & HISTORIQUE${N}"
+    echo -e "${R} ──────────────────────────────────${N}\n"
+    echo -e " ${R}[${W}1${R}]${N} ${W}Historique des commandes${N}"
+    echo -e " ${R}[${W}2${R}]${N} ${W}Logs système (syslog)${N}"
+    echo -e " ${R}[${W}3${R}]${N} ${W}Logs auth${N}"
+    echo -e " ${R}[${W}4${R}]${N} ${W}Vider l'historique${N}"
+    echo -e "\n ${R}[${W}b${R}]${N} ${D}Retour${N}"
+    echo -e "\n${R} ──────────────────────────────────${N}"
+    echo -ne "\n ${R}» ${W}"
+    read -r OPT
+    echo -ne "${N}"
+    case "$OPT" in
+      1)
+        proot-distro login ubuntu -- bash -c "cat ~/.bash_history 2>/dev/null || echo 'Vide'"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      2)
+        proot-distro login ubuntu -- bash -c "cat /var/log/syslog 2>/dev/null | tail -50 || echo 'Non disponible'"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      3)
+        proot-distro login ubuntu -- bash -c "cat /var/log/auth.log 2>/dev/null | tail -50 || echo 'Non disponible'"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      4)
+        proot-distro login ubuntu -- bash -c "cat /dev/null > ~/.bash_history && echo 'Historique vidé'"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      b|B) return ;;
+      *) sleep 0.5 ;;
+    esac
+  done
+}
+
 security_menu() {
   while true; do
     clear
@@ -278,7 +344,9 @@ linux_menu() {
     echo -e " ${R}[${W}2${R}]${N} ${W}Lancer un outil${N}"
     echo -e " ${R}[${W}3${R}]${N} ${W}Infos système${N}"
     echo -e " ${R}[${W}4${R}]${N} ${W}Passer en user${N}"
-    echo -e " ${R}[${W}5${R}]${N} ${W}Retour${N}"
+    echo -e " ${R}[${W}5${R}]${N} ${W}Éditeur de texte${N}"
+    echo -e " ${R}[${W}6${R}]${N} ${W}Logs & historique${N}"
+    echo -e " ${R}[${W}7${R}]${N} ${W}Retour${N}"
     echo -e "\n${R} ──────────────────────────────────${N}"
     echo -ne "\n ${R}» ${W}"
     read -r OPT
@@ -295,7 +363,9 @@ linux_menu() {
         proot-distro login ubuntu --user ubuntu 2>/dev/null || \
           proot-distro login ubuntu -- bash -c "id ubuntu &>/dev/null && su - ubuntu || bash"
         ;;
-      5|exit) return ;;
+      5) editor_menu ;;
+      6) logs_menu ;;
+      7|exit) return ;;
       *) sleep 0.5 ;;
     esac
   done
@@ -352,7 +422,7 @@ help_cmd() {
   echo -e " ${R}3${N}  ${D}→${N} Mettre à jour les outils"
   echo -e " ${R}4${N}  ${D}→${N} Installer un outil"
   echo -e " ${R}5${N}  ${D}→${N} Infos système"
-  echo -e " ${R}6${N}  ${D}→${N} Menu sécurité rapide"
+  echo -e " ${R}6${N}  ${D}→${N} Sécurité rapide"
   echo -e " ${R}7${N}  ${D}→${N} Réinitialiser Linux"
   echo -e " ${R}8${N}  ${D}→${N} Désinstaller Linux"
   echo -e " ${R}9${N}  ${D}→${N} Quitter"
