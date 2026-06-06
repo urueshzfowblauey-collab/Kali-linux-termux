@@ -1,13 +1,16 @@
 #!/bin/bash
 
 source "$(dirname "$0")/config.sh" 2>/dev/null || {
-  KALI_DIR="$HOME/kali-fs"
   declare -A TOOLS
-  TOOLS["nmap"]="https://github.com/nmap/nmap"
-  TOOLS["sqlmap"]="https://github.com/sqlmapproject/sqlmap"
-  TOOLS["hydra"]="https://github.com/vanhauser-thc/thc-hydra"
-  TOOLS["nikto"]="https://github.com/sullo/nikto"
-  TOOLS["john"]="https://github.com/openwall/john"
+  TOOLS["nmap"]=""
+  TOOLS["sqlmap"]=""
+  TOOLS["hydra"]=""
+  TOOLS["nikto"]=""
+  TOOLS["john"]=""
+  TOOLS["aircrack-ng"]=""
+  TOOLS["hashcat"]=""
+  TOOLS["metasploit"]=""
+  TOOLS["beef"]=""
   TOOLS["mr-ripper"]=""
 }
 
@@ -15,7 +18,6 @@ R='\033[0;31m'
 RB='\033[1;31m'
 W='\033[1;37m'
 D='\033[2;37m'
-G='\033[0;32m'
 N='\033[0m'
 
 trap "echo -e '${N}'; exit" INT TERM
@@ -40,8 +42,7 @@ show_ascii() {
   echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢻⡀⠀"
   echo "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠃⠀"
   echo -e "${N}"
-  echo -e "${W}        K A L I - T E R M U X   T O O L S${N}"
-  echo -e "${D}              by LinuxKyaev  •  v2.0${N}\n"
+  echo -e "${W}        K A L I - T E R M U X${N}\n"
 }
 
 progress_bar() {
@@ -56,67 +57,52 @@ progress_bar() {
   sleep 0.3
 }
 
-install_deps() {
-  echo -e "\n${R}  [*]${W} Vérification des dépendances...${N}\n"
-  local deps=("proot-distro" "wget" "curl" "git")
-  for dep in "${deps[@]}"; do
-    echo -ne "  ${R}+${N} ${W}${dep}${D}..."
-    if command -v "$dep" &>/dev/null; then
-      echo -e " ${R}ok${N}"
-    else
-      pkg install -y "$dep" &>/dev/null 2>&1
-      command -v "$dep" &>/dev/null && echo -e " ${R}installé${N}" || echo -e " ${W}échec${N}"
-    fi
-  done
-  echo
+check_installed() {
+  [ -d "$PREFIX/var/lib/proot-distro/installed-rootfs/ubuntu" ] && return 0
+  return 1
 }
 
 download_kali() {
   clear
   show_ascii
-  echo -e "${R}  [*]${W} Installation de l'environnement Linux...${N}\n"
-  install_deps
-  echo -e "  ${R}[*]${W} Téléchargement via proot-distro...${N}\n"
-  progress_bar "Téléchargement en cours"
+  echo -e "${R}  [*]${W} Installation...${N}\n"
+  echo -ne "  ${R}+${N} ${W}proot-distro${D}..."
+  if ! command -v proot-distro &>/dev/null; then
+    pkg install -y proot-distro &>/dev/null 2>&1
+    command -v proot-distro &>/dev/null && echo -e " ${R}ok${N}" || { echo -e " ${W}échec${N}"; sleep 2; return 1; }
+  else
+    echo -e " ${R}ok${N}"
+  fi
+  progress_bar "Téléchargement de l'environnement"
   proot-distro install ubuntu
-  echo -e "\n  ${R}[✓]${W} Environnement installé !${N}\n"
-  echo -e "  ${D}Lance l'option 1 pour démarrer.${N}\n"
+  progress_bar "Configuration"
+  echo -e "\n  ${R}[✓]${W} Installé !${N}\n"
   sleep 1
-}
-
-check_installed() {
-  proot-distro list 2>/dev/null | grep -q "ubuntu" && return 0
-  # fallback check
-  [ -d "$PREFIX/var/lib/proot-distro/installed-rootfs/ubuntu" ] && return 0
-  return 1
 }
 
 launch_kali() {
   if ! check_installed; then
-    echo -e "\n  ${W}[!]${R} Environnement non installé.${N}"
-    echo -e "  ${D}Lance l'option depuis le menu principal.${N}"
+    echo -e "\n  ${W}[!]${R} Non installé. Choisis l'option d'installation.${N}"
     sleep 2; return
   fi
-
   clear
   show_ascii
-  echo -e "  ${D}Connexion en cours...${N}\n"
+  echo -e "  ${D}Connexion...${N}\n"
   proot-distro login ubuntu
-
   echo -e "\n  ${R}[*]${W} Session terminée.${N}"
   sleep 1
 }
 
 update_kali() {
   if ! check_installed; then
-    echo -e "\n  ${W}[!]${R} Environnement non installé.${N}"
+    echo -e "\n  ${W}[!]${R} Non installé.${N}"
     sleep 2; return
   fi
   clear
   show_ascii
   echo -e "${R}  [*]${W} Mise à jour...${N}\n"
   proot-distro login ubuntu -- bash -c "apt update && apt upgrade -y && apt autoremove -y"
-  echo -e "\n  ${R}[✓]${W} Mise à jour terminée.${N}"
+  echo -e "\n  ${R}[✓]${W} Terminé.${N}"
   sleep 2
 }
 
@@ -125,7 +111,7 @@ tools_menu() {
     clear
     show_ascii
     echo -e "${R}  ──────────────────────────────────${N}"
-    echo -e "${W}         MENU DES TOOLS${N}"
+    echo -e "${W}         OUTILS${N}"
     echo -e "${R}  ──────────────────────────────────${N}\n"
 
     local idx=1
@@ -149,15 +135,9 @@ tools_menu() {
     local idx=1
     for tool in "${tool_keys[@]}"; do
       if [ "$idx" -eq "$CHOICE" ] 2>/dev/null; then
-        local url="${TOOLS[$tool]}"
-        echo -e "\n  ${R}[*]${W} Installation de ${R}${tool}${N} dans Ubuntu..."
-        if [ -n "$url" ]; then
-          proot-distro login ubuntu -- bash -c "apt install -y ${tool} 2>/dev/null || git clone ${url} /root/tools/${tool}"
-          echo -e "\n  ${R}[✓]${W} ${tool} installé${N}"
-        else
-          echo -e "  ${W}[!]${R} Aucun dépôt pour ${tool}.${N}"
-          echo -e "  ${D}    Modifie config.sh pour ajouter le lien.${N}"
-        fi
+        echo -e "\n  ${R}[*]${W} Installation de ${R}${tool}${N}..."
+        proot-distro login ubuntu -- bash -c "apt install -y ${tool}"
+        echo -e "\n  ${R}[✓]${W} ${tool} installé${N}"
         echo -ne "\n  ${D}[Entrée]${N}"
         read -r
         break
@@ -171,10 +151,10 @@ help_cmd() {
   echo -e "\n${R}  ──────────────────────────────────${N}"
   echo -e "${W}  COMMANDES${N}"
   echo -e "${R}  ──────────────────────────────────${N}"
-  echo -e "  ${R}help${N}    ${D}→${N}  afficher cette aide"
-  echo -e "  ${R}tools${N}   ${D}→${N}  menu des tools"
-  echo -e "  ${R}update${N}  ${D}→${N}  mettre à jour"
-  echo -e "  ${R}clear${N}   ${D}→${N}  effacer l'écran"
+  echo -e "  ${R}help${N}    ${D}→${N}  cette aide"
+  echo -e "  ${R}tools${N}   ${D}→${N}  menu outils"
+  echo -e "  ${R}update${N}  ${D}→${N}  mise à jour"
+  echo -e "  ${R}clear${N}   ${D}→${N}  effacer"
   echo -e "  ${R}exit${N}    ${D}→${N}  quitter"
   echo -e "${R}  ──────────────────────────────────${N}\n"
 }
@@ -201,7 +181,7 @@ main_menu() {
       update) update_kali ;;
       clear)  clear ;;
       exit)   exit 0 ;;
-      *)      echo -e "\n  ${W}[!]${R} Commande invalide.${N}"; sleep 0.5 ;;
+      *)      echo -e "\n  ${W}[!]${R} Invalide.${N}"; sleep 0.5 ;;
     esac
   done
 }
@@ -210,7 +190,7 @@ install_menu() {
   clear
   show_ascii
   echo -e "${R}  ──────────────────────────────────${N}\n"
-  echo -e "  ${R}[${W}1${R}]${N}  ${W}Installer l'environnement Linux${N}"
+  echo -e "  ${R}[${W}1${R}]${N}  ${W}Installer Linux${N}"
   echo -e "\n${R}  ──────────────────────────────────${N}"
   echo -ne "\n  ${R}» ${W}"
   read -r OPT
@@ -218,11 +198,10 @@ install_menu() {
   case "$OPT" in
     1) download_kali; main_menu ;;
     exit) exit 0 ;;
-    *) echo -e "\n  ${W}[!]${R} Option invalide.${N}"; sleep 1; install_menu ;;
+    *) echo -e "\n  ${W}[!]${R} Invalide.${N}"; sleep 1; install_menu ;;
   esac
 }
 
-# ── Démarrage ──────────────────────────────────────────
 clear
 show_ascii
 
