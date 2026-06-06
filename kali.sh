@@ -113,6 +113,90 @@ get_sys_info() {
   read -r
 }
 
+security_menu() {
+  while true; do
+    clear
+    show_ascii
+    echo -e "${R} ──────────────────────────────────${N}"
+    echo -e "${W} SÉCURITÉ RAPIDE${N}"
+    echo -e "${R} ──────────────────────────────────${N}\n"
+    echo -e " ${R}[${W}1${R}]${N} ${W}Scan réseau local${N}"
+    echo -e " ${R}[${W}2${R}]${N} ${W}Scan ports (IP)${N}"
+    echo -e " ${R}[${W}3${R}]${N} ${W}Ping host${N}"
+    echo -e " ${R}[${W}4${R}]${N} ${W}Traceroute${N}"
+    echo -e " ${R}[${W}5${R}]${N} ${W}Infos interface réseau${N}"
+    echo -e "\n ${R}[${W}b${R}]${N} ${D}Retour${N}"
+    echo -e "\n${R} ──────────────────────────────────${N}"
+    echo -ne "\n ${R}» ${W}"
+    read -r OPT
+    echo -ne "${N}"
+    case "$OPT" in
+      1)
+        proot-distro login ubuntu -- bash -c "apt install -y nmap -qq && nmap -sn 192.168.1.0/24"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      2)
+        echo -ne "\n ${W}IP cible : ${N}"
+        read -r TARGET
+        proot-distro login ubuntu -- bash -c "apt install -y nmap -qq && nmap -sV ${TARGET}"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      3)
+        echo -ne "\n ${W}Host : ${N}"
+        read -r TARGET
+        proot-distro login ubuntu -- bash -c "ping -c 4 ${TARGET}"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      4)
+        echo -ne "\n ${W}Host : ${N}"
+        read -r TARGET
+        proot-distro login ubuntu -- bash -c "apt install -y traceroute -qq && traceroute ${TARGET}"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      5)
+        proot-distro login ubuntu -- bash -c "ip a"
+        echo -ne "\n ${D}Entrée...${N}"; read -r ;;
+      b|B) return ;;
+      *) sleep 0.5 ;;
+    esac
+  done
+}
+
+update_tools_menu() {
+  while true; do
+    clear
+    show_ascii
+    echo -e "${R} ──────────────────────────────────${N}"
+    echo -e "${W} METTRE À JOUR LES OUTILS${N}"
+    echo -e "${R} ──────────────────────────────────${N}\n"
+    local idx=1
+    for tool in "${TOOL_ORDER[@]}"; do
+      echo -e " ${R}[${W}${idx}${R}]${N} ${W}${tool}${N}"
+      idx=$((idx+1))
+    done
+    echo -e " ${R}[${W}a${R}]${N} ${W}Tous les outils${N}"
+    echo -e "\n ${R}[${W}b${R}]${N} ${D}Retour${N}"
+    echo -e "\n${R} ──────────────────────────────────${N}"
+    echo -ne "\n ${R}» ${W}"
+    read -r CHOICE
+    echo -ne "${N}"
+    [[ "$CHOICE" == "b" || "$CHOICE" == "B" ]] && return
+    if [[ "$CHOICE" == "a" || "$CHOICE" == "A" ]]; then
+      for tool in "${TOOL_ORDER[@]}"; do
+        proot-distro login ubuntu -- bash -c "apt install -y --only-upgrade ${tool} 2>/dev/null"
+      done
+      echo -ne "\n ${D}Entrée...${N}"; read -r
+      continue
+    fi
+    [[ ! "$CHOICE" =~ ^[0-9]+$ ]] && continue
+    local i=1
+    for tool in "${TOOL_ORDER[@]}"; do
+      if [[ "$i" -eq "$CHOICE" ]]; then
+        proot-distro login ubuntu -- bash -c "apt install -y --only-upgrade ${tool}"
+        echo -ne "\n ${D}Entrée...${N}"; read -r
+        break
+      fi
+      i=$((i+1))
+    done
+  done
+}
+
 linux_tools_menu() {
   while true; do
     clear
@@ -141,6 +225,39 @@ linux_tools_menu() {
           proot-distro login ubuntu -- bash -c "apt update -qq && apt install -y ${tool}"
         fi
         proot-distro login ubuntu -- bash -c "${tool}"
+        echo -ne "\n ${D}Entrée...${N}"
+        read -r
+        break
+      fi
+      i=$((i+1))
+    done
+  done
+}
+
+tools_menu() {
+  while true; do
+    clear
+    show_ascii
+    echo -e "${R} ──────────────────────────────────${N}"
+    echo -e "${W} INSTALLER UN OUTIL${N}"
+    echo -e "${R} ──────────────────────────────────${N}\n"
+    check_installed || { sleep 2; return; }
+    local idx=1
+    for tool in "${TOOL_ORDER[@]}"; do
+      echo -e " ${R}[${W}${idx}${R}]${N} ${W}${tool}${N}"
+      idx=$((idx+1))
+    done
+    echo -e "\n ${R}[${W}b${R}]${N} ${D}Retour${N}"
+    echo -e "\n${R} ──────────────────────────────────${N}"
+    echo -ne "\n ${R}» ${W}"
+    read -r CHOICE
+    echo -ne "${N}"
+    [[ "$CHOICE" == "b" || "$CHOICE" == "B" ]] && return
+    [[ ! "$CHOICE" =~ ^[0-9]+$ ]] && continue
+    local i=1
+    for tool in "${TOOL_ORDER[@]}"; do
+      if [[ "$i" -eq "$CHOICE" ]]; then
+        proot-distro login ubuntu -- bash -c "apt update -qq && apt install -y ${tool}"
         echo -ne "\n ${D}Entrée...${N}"
         read -r
         break
@@ -193,50 +310,54 @@ update_kali() {
   sleep 2
 }
 
-tools_menu() {
-  while true; do
-    clear
-    show_ascii
-    echo -e "${R} ──────────────────────────────────${N}"
-    echo -e "${W} INSTALLER UN OUTIL${N}"
-    echo -e "${R} ──────────────────────────────────${N}\n"
-    check_installed || { sleep 2; return; }
-    local idx=1
-    for tool in "${TOOL_ORDER[@]}"; do
-      echo -e " ${R}[${W}${idx}${R}]${N} ${W}${tool}${N}"
-      idx=$((idx+1))
-    done
-    echo -e "\n ${R}[${W}b${R}]${N} ${D}Retour${N}"
-    echo -e "\n${R} ──────────────────────────────────${N}"
-    echo -ne "\n ${R}» ${W}"
-    read -r CHOICE
-    echo -ne "${N}"
-    [[ "$CHOICE" == "b" || "$CHOICE" == "B" ]] && return
-    [[ ! "$CHOICE" =~ ^[0-9]+$ ]] && continue
-    local i=1
-    for tool in "${TOOL_ORDER[@]}"; do
-      if [[ "$i" -eq "$CHOICE" ]]; then
-        proot-distro login ubuntu -- bash -c "apt update -qq && apt install -y ${tool}"
-        echo -ne "\n ${D}Entrée...${N}"
-        read -r
-        break
-      fi
-      i=$((i+1))
-    done
-  done
+reset_kali() {
+  clear
+  show_ascii
+  echo -e "${R} ──────────────────────────────────${N}"
+  echo -e "${W} RÉINITIALISER LINUX${N}"
+  echo -e "${R} ──────────────────────────────────${N}\n"
+  echo -e " ${R}[!]${N} ${W}Toutes les données seront perdues.${N}"
+  echo -ne "\n ${W}Confirmer ? [o/N] : ${N}"
+  read -r CONFIRM
+  if [[ "$CONFIRM" =~ ^[oO]$ ]]; then
+    proot-distro reset ubuntu
+    progress_bar "Réinitialisation"
+    sleep 1
+  fi
+}
+
+remove_kali() {
+  clear
+  show_ascii
+  echo -e "${R} ──────────────────────────────────${N}"
+  echo -e "${W} DÉSINSTALLER LINUX${N}"
+  echo -e "${R} ──────────────────────────────────${N}\n"
+  echo -e " ${R}[!]${N} ${W}Linux sera complètement supprimé.${N}"
+  echo -ne "\n ${W}Confirmer ? [o/N] : ${N}"
+  read -r CONFIRM
+  if [[ "$CONFIRM" =~ ^[oO]$ ]]; then
+    proot-distro remove ubuntu
+    progress_bar "Désinstallation"
+    sleep 1
+    install_menu
+  fi
 }
 
 help_cmd() {
   echo -e "\n${R} ──────────────────────────────────${N}"
   echo -e "${W} COMMANDES${N}"
   echo -e "${R} ──────────────────────────────────${N}"
-  echo -e " ${R}1${N}      ${D}→${N} Lancer Linux"
-  echo -e " ${R}2${N}      ${D}→${N} Mettre à jour"
-  echo -e " ${R}3${N}      ${D}→${N} Quitter"
-  echo -e " ${R}tools${N}  ${D}→${N} Installer des outils"
-  echo -e " ${R}help${N}   ${D}→${N} Cette aide"
-  echo -e " ${R}clear${N}  ${D}→${N} Effacer"
-  echo -e " ${R}exit${N}   ${D}→${N} Quitter"
+  echo -e " ${R}1${N}  ${D}→${N} Lancer Linux"
+  echo -e " ${R}2${N}  ${D}→${N} Mettre à jour Linux"
+  echo -e " ${R}3${N}  ${D}→${N} Mettre à jour les outils"
+  echo -e " ${R}4${N}  ${D}→${N} Installer un outil"
+  echo -e " ${R}5${N}  ${D}→${N} Infos système"
+  echo -e " ${R}6${N}  ${D}→${N} Menu sécurité rapide"
+  echo -e " ${R}7${N}  ${D}→${N} Réinitialiser Linux"
+  echo -e " ${R}8${N}  ${D}→${N} Désinstaller Linux"
+  echo -e " ${R}9${N}  ${D}→${N} Quitter"
+  echo -e " ${R}help${N}  ${D}→${N} Cette aide"
+  echo -e " ${R}clear${N} ${D}→${N} Effacer"
   echo -e "${R} ──────────────────────────────────${N}\n"
 }
 
@@ -246,21 +367,32 @@ main_menu() {
     show_ascii
     echo -e "${R} ──────────────────────────────────${N}\n"
     echo -e " ${R}[${W}1${R}]${N} ${W}Lancer Linux${N}"
-    echo -e " ${R}[${W}2${R}]${N} ${W}Mettre à jour${N}"
-    echo -e " ${R}[${W}3${R}]${N} ${W}Quitter${N}"
+    echo -e " ${R}[${W}2${R}]${N} ${W}Mettre à jour Linux${N}"
+    echo -e " ${R}[${W}3${R}]${N} ${W}Mettre à jour les outils${N}"
+    echo -e " ${R}[${W}4${R}]${N} ${W}Installer un outil${N}"
+    echo -e " ${R}[${W}5${R}]${N} ${W}Infos système${N}"
+    echo -e " ${R}[${W}6${R}]${N} ${W}Sécurité rapide${N}"
+    echo -e " ${R}[${W}7${R}]${N} ${W}Réinitialiser Linux${N}"
+    echo -e " ${R}[${W}8${R}]${N} ${W}Désinstaller Linux${N}"
+    echo -e " ${R}[${W}9${R}]${N} ${W}Quitter${N}"
     echo -e "\n${R} ──────────────────────────────────${N}"
     echo -ne "\n ${R}» ${W}"
     read -r OPT
     echo -ne "${N}"
     case "$OPT" in
-      1)     check_proot && check_installed && linux_menu || sleep 2 ;;
-      2)     update_kali ;;
-      3)     clear; show_ascii; echo -e "\n ${D}À bientôt.${N}\n"; exit 0 ;;
-      tools) tools_menu ;;
+      1) check_proot && check_installed && linux_menu || sleep 2 ;;
+      2) update_kali ;;
+      3) update_tools_menu ;;
+      4) tools_menu ;;
+      5) get_sys_info ;;
+      6) security_menu ;;
+      7) reset_kali ;;
+      8) remove_kali ;;
+      9) clear; show_ascii; echo -e "\n ${D}À bientôt.${N}\n"; exit 0 ;;
       help)  help_cmd; echo -ne " ${D}Entrée...${N}"; read -r ;;
       clear) clear ;;
       exit)  exit 0 ;;
-      *)     sleep 0.5 ;;
+      *) sleep 0.5 ;;
     esac
   done
 }
