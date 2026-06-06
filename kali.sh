@@ -425,7 +425,8 @@ help_cmd() {
   echo -e " ${R}6${N}  ${D}→${N} Sécurité rapide"
   echo -e " ${R}7${N}  ${D}→${N} Réinitialiser Linux"
   echo -e " ${R}8${N}  ${D}→${N} Désinstaller Linux"
-  echo -e " ${R}9${N}  ${D}→${N} Quitter"
+  echo -e " ${R}9${N}  ${D}→${N} Updater le projet"
+  echo -e " ${R}0${N}  ${D}→${N} Quitter"
   echo -e " ${R}help${N}  ${D}→${N} Cette aide"
   echo -e " ${R}clear${N} ${D}→${N} Effacer"
   echo -e "${R} ──────────────────────────────────${N}\n"
@@ -444,7 +445,8 @@ main_menu() {
     echo -e " ${R}[${W}6${R}]${N} ${W}Sécurité rapide${N}"
     echo -e " ${R}[${W}7${R}]${N} ${W}Réinitialiser Linux${N}"
     echo -e " ${R}[${W}8${R}]${N} ${W}Désinstaller Linux${N}"
-    echo -e " ${R}[${W}9${R}]${N} ${W}Quitter${N}"
+    echo -e " ${R}[${W}9${R}]${N} ${W}Updater le projet${N}"
+    echo -e " ${R}[${W}0${R}]${N} ${W}Quitter${N}"
     echo -e "\n${R} ──────────────────────────────────${N}"
     echo -ne "\n ${R}» ${W}"
     read -r OPT
@@ -458,7 +460,17 @@ main_menu() {
       6) security_menu ;;
       7) reset_kali ;;
       8) remove_kali ;;
-      9) clear; show_ascii; echo -e "\n ${D}À bientôt.${N}\n"; exit 0 ;;
+      9)
+        local UPDATE_SCRIPT
+        UPDATE_SCRIPT="$(dirname "$0")/update.sh"
+        if [[ -f "$UPDATE_SCRIPT" ]]; then
+          bash "$UPDATE_SCRIPT"
+        else
+          echo -e "\n ${R}[✗] update.sh introuvable.${N}"
+          sleep 2
+        fi
+        ;;
+      0) clear; show_ascii; echo -e "\n ${D}À bientôt.${N}\n"; exit 0 ;;
       help)  help_cmd; echo -ne " ${D}Entrée...${N}"; read -r ;;
       clear) clear ;;
       exit)  exit 0 ;;
