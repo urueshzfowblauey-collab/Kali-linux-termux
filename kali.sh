@@ -16,6 +16,8 @@ source "$(dirname "$0")/config.sh" 2>/dev/null || {
   TOOLS["netcat-openbsd"]=""
 }
 
+TOOL_ORDER=("nmap" "sqlmap" "hydra" "nikto" "john" "aircrack-ng" "hashcat" "metasploit-framework" "beef-xss" "gobuster" "dirb" "netcat-openbsd")
+
 R='\033[0;31m'
 RB='\033[1;31m'
 W='\033[1;37m'
@@ -59,19 +61,14 @@ progress_bar() {
 }
 
 check_installed() {
+  command -v proot-distro &>/dev/null || return 1
   proot-distro list 2>/dev/null | grep -qw "ubuntu"
-  return $?
 }
 
 check_proot() {
   if ! command -v proot-distro &>/dev/null; then
-    echo -e "\n ${W}[!]${R} proot-distro manquant. Installation...${N}"
     pkg install proot-distro -y
-    if ! command -v proot-distro &>/dev/null; then
-      echo -e " ${W}[✗]${R} Échec. Fais : pkg install proot-distro${N}"
-      sleep 3
-      return 1
-    fi
+    command -v proot-distro &>/dev/null || return 1
   fi
   return 0
 }
@@ -79,38 +76,25 @@ check_proot() {
 download_kali() {
   clear
   show_ascii
-  echo -e "${R} [*]${W} Installation de l'environnement Linux...${N}\n"
   check_proot || return 1
   if check_installed; then
-    echo -e " ${R}[i]${W} Ubuntu déjà installé.${N}"
     sleep 1
     return 0
   fi
-  echo -e " ${R}[*]${W} Téléchargement en cours...${N}"
   proot-distro install ubuntu
-  if ! check_installed; then
-    echo -e "\n ${W}[✗]${R} Échec. Vérifie ta connexion et réessaie.${N}"
-    sleep 3
-    return 1
-  fi
+  check_installed || return 1
   progress_bar "Finalisation"
-  echo -e "\n ${R}[✓]${W} Installation terminée !${N}\n"
   sleep 1
   return 0
 }
 
 get_sys_info() {
-  local ip
+  local ip os kernel ram disk
   ip=$(proot-distro login ubuntu -- bash -c "hostname -I 2>/dev/null | awk '{print \$1}'" 2>/dev/null)
-  local os
-  os=$(proot-distro login ubuntu -- bash -c "cat /etc/os-release 2>/dev/null | grep PRETTY_NAME | cut -d'\"' -f2" 2>/dev/null)
-  local kernel
+  os=$(proot-distro login ubuntu -- bash -c "grep PRETTY_NAME /etc/os-release 2>/dev/null | cut -d'\"' -f2" 2>/dev/null)
   kernel=$(proot-distro login ubuntu -- bash -c "uname -r 2>/dev/null" 2>/dev/null)
-  local ram
-  ram=$(proot-distro login ubuntu -- bash -c "free -m 2>/dev/null | awk '/Mem:/{print \$2\" MB total / \"\$3\" MB utilisé\"}'" 2>/dev/null)
-  local disk
-  disk=$(proot-distro login ubuntu -- bash -c "df -h / 2>/dev/null | awk 'NR==2{print \$4\" libre sur \"\$2}'" 2>/dev/null)
-
+  ram=$(proot-distro login ubuntu -- bash -c "free -m 2>/dev/null | awk '/Mem:/{print \$2\" MB / \"\$3\" MB\"}'" 2>/dev/null)
+  disk=$(proot-distro login ubuntu -- bash -c "df -h / 2>/dev/null | awk 'NR==2{print \$4\" / \"\$2}'" 2>/dev/null)
   clear
   show_ascii
   echo -e "${R} ──────────────────────────────────${N}"
@@ -122,7 +106,7 @@ get_sys_info() {
   echo -e " ${R}RAM    ${N}${W}${ram:-inconnu}${N}"
   echo -e " ${R}Disk   ${N}${W}${disk:-inconnu}${N}"
   echo -e "\n${R} ──────────────────────────────────${N}"
-  echo -ne "\n ${D}Appuie sur Entrée...${N}"
+  echo -ne "\n ${D}Entrée...${N}"
   read -r
 }
 
@@ -131,16 +115,10 @@ linux_tools_menu() {
     clear
     show_ascii
     echo -e "${R} ──────────────────────────────────${N}"
-    echo -e "${W} OUTILS — CHOISIR & LANCER${N}"
+    echo -e "${W} OUTILS — LANCER${N}"
     echo -e "${R} ──────────────────────────────────${N}\n"
-
     local idx=1
-    local tool_keys=()
-    for tool in "${!TOOLS[@]}"; do
-      tool_keys+=("$tool")
-    done
-
-    for tool in "${tool_keys[@]}"; do
+    for tool in "${TOOL_ORDER[@]}"; do
       echo -e " ${R}[${W}${idx}${R}]${N} ${W}${tool}${N}"
       idx=$((idx+1))
     done
@@ -149,22 +127,18 @@ linux_tools_menu() {
     echo -ne "\n ${R}» ${W}"
     read -r CHOICE
     echo -ne "${N}"
-
     [[ "$CHOICE" == "b" || "$CHOICE" == "B" ]] && return
-
+    [[ ! "$CHOICE" =~ ^[0-9]+$ ]] && continue
     local i=1
-    for tool in "${tool_keys[@]}"; do
-      if [[ "$i" == "$CHOICE" ]]; then
-        echo -e "\n ${R}[*]${W} Vérification de ${R}${tool}${W}...${N}"
+    for tool in "${TOOL_ORDER[@]}"; do
+      if [[ "$i" -eq "$CHOICE" ]]; then
         local installed
         installed=$(proot-distro login ubuntu -- bash -c "command -v ${tool} 2>/dev/null")
         if [[ -z "$installed" ]]; then
-          echo -e " ${W}[!]${R} ${tool} non installé. Installation...${N}"
           proot-distro login ubuntu -- bash -c "apt update -qq && apt install -y ${tool}"
         fi
-        echo -e "\n ${R}[✓]${W} Lancement de ${R}${tool}${W}...${N}\n"
         proot-distro login ubuntu -- bash -c "${tool}"
-        echo -ne "\n ${D}Appuie sur Entrée...${N}"
+        echo -ne "\n ${D}Entrée...${N}"
         read -r
         break
       fi
@@ -184,54 +158,35 @@ linux_menu() {
     echo -e " ${R}[${W}2${R}]${N} ${W}Lancer un outil${N}"
     echo -e " ${R}[${W}3${R}]${N} ${W}Infos système${N}"
     echo -e " ${R}[${W}4${R}]${N} ${W}Passer en user${N}"
-    echo -e " ${R}[${W}5${R}]${N} ${W}Retour menu principal${N}"
+    echo -e " ${R}[${W}5${R}]${N} ${W}Retour${N}"
     echo -e "\n${R} ──────────────────────────────────${N}"
     echo -ne "\n ${R}» ${W}"
     read -r OPT
     echo -ne "${N}"
     case "$OPT" in
       1)
-        clear
-        show_ascii
-        echo -e " ${D}Shell root — tape 'exit' pour revenir${N}\n"
+        clear; show_ascii
         proot-distro login ubuntu
         ;;
-      2)
-        linux_tools_menu
-        ;;
-      3)
-        get_sys_info
-        ;;
+      2) linux_tools_menu ;;
+      3) get_sys_info ;;
       4)
-        clear
-        show_ascii
-        echo -e " ${D}Shell user — tape 'exit' pour revenir${N}\n"
+        clear; show_ascii
         proot-distro login ubuntu --user ubuntu 2>/dev/null || \
           proot-distro login ubuntu -- bash -c "id ubuntu &>/dev/null && su - ubuntu || bash"
         ;;
-      5|exit)
-        return
-        ;;
-      *)
-        echo -e "\n ${W}[!]${R} Option invalide.${N}"
-        sleep 0.5
-        ;;
+      5|exit) return ;;
+      *) sleep 0.5 ;;
     esac
   done
 }
 
 update_kali() {
   check_proot || return
-  if ! check_installed; then
-    echo -e "\n ${W}[!]${R} Linux non installé.${N}"
-    sleep 2
-    return
-  fi
+  check_installed || return
   clear
   show_ascii
-  echo -e "${R} [*]${W} Mise à jour du système...${N}\n"
   proot-distro login ubuntu -- bash -c "apt update && apt upgrade -y && apt autoremove -y"
-  echo -e "\n ${R}[✓]${W} Mise à jour terminée.${N}"
   sleep 2
 }
 
@@ -242,20 +197,9 @@ tools_menu() {
     echo -e "${R} ──────────────────────────────────${N}"
     echo -e "${W} INSTALLER UN OUTIL${N}"
     echo -e "${R} ──────────────────────────────────${N}\n"
-
-    if ! check_installed; then
-      echo -e " ${W}[!]${R} Linux non installé.${N}"
-      sleep 2
-      return
-    fi
-
+    check_installed || { sleep 2; return; }
     local idx=1
-    local tool_keys=()
-    for tool in "${!TOOLS[@]}"; do
-      tool_keys+=("$tool")
-    done
-
-    for tool in "${tool_keys[@]}"; do
+    for tool in "${TOOL_ORDER[@]}"; do
       echo -e " ${R}[${W}${idx}${R}]${N} ${W}${tool}${N}"
       idx=$((idx+1))
     done
@@ -264,20 +208,13 @@ tools_menu() {
     echo -ne "\n ${R}» ${W}"
     read -r CHOICE
     echo -ne "${N}"
-
     [[ "$CHOICE" == "b" || "$CHOICE" == "B" ]] && return
-
+    [[ ! "$CHOICE" =~ ^[0-9]+$ ]] && continue
     local i=1
-    for tool in "${tool_keys[@]}"; do
-      if [[ "$i" == "$CHOICE" ]]; then
-        echo -e "\n ${R}[*]${W} Installation de ${R}${tool}${W}...${N}"
+    for tool in "${TOOL_ORDER[@]}"; do
+      if [[ "$i" -eq "$CHOICE" ]]; then
         proot-distro login ubuntu -- bash -c "apt update -qq && apt install -y ${tool}"
-        if [[ $? -eq 0 ]]; then
-          echo -e "\n ${R}[✓]${W} ${tool} installé.${N}"
-        else
-          echo -e "\n ${W}[✗]${R} Échec pour ${tool}.${N}"
-        fi
-        echo -ne "\n ${D}Appuie sur Entrée...${N}"
+        echo -ne "\n ${D}Entrée...${N}"
         read -r
         break
       fi
@@ -288,14 +225,14 @@ tools_menu() {
 
 help_cmd() {
   echo -e "\n${R} ──────────────────────────────────${N}"
-  echo -e "${W} COMMANDES DISPONIBLES${N}"
+  echo -e "${W} COMMANDES${N}"
   echo -e "${R} ──────────────────────────────────${N}"
   echo -e " ${R}1${N}      ${D}→${N} Lancer Linux"
   echo -e " ${R}2${N}      ${D}→${N} Mettre à jour"
   echo -e " ${R}3${N}      ${D}→${N} Quitter"
   echo -e " ${R}tools${N}  ${D}→${N} Installer des outils"
   echo -e " ${R}help${N}   ${D}→${N} Cette aide"
-  echo -e " ${R}clear${N}  ${D}→${N} Effacer l'écran"
+  echo -e " ${R}clear${N}  ${D}→${N} Effacer"
   echo -e " ${R}exit${N}   ${D}→${N} Quitter"
   echo -e "${R} ──────────────────────────────────${N}\n"
 }
@@ -313,14 +250,14 @@ main_menu() {
     read -r OPT
     echo -ne "${N}"
     case "$OPT" in
-      1)     check_proot && check_installed && linux_menu || { echo -e "\n ${W}[!]${R} Linux non installé.${N}"; sleep 2; } ;;
+      1)     check_proot && check_installed && linux_menu || sleep 2 ;;
       2)     update_kali ;;
       3)     clear; show_ascii; echo -e "\n ${D}À bientôt.${N}\n"; exit 0 ;;
       tools) tools_menu ;;
-      help)  help_cmd; echo -ne " ${D}Appuie sur Entrée...${N}"; read -r ;;
+      help)  help_cmd; echo -ne " ${D}Entrée...${N}"; read -r ;;
       clear) clear ;;
       exit)  exit 0 ;;
-      *)     echo -e "\n ${W}[!]${R} Option invalide.${N}"; sleep 0.5 ;;
+      *)     sleep 0.5 ;;
     esac
   done
 }
@@ -338,26 +275,17 @@ install_menu() {
     echo -ne "${N}"
     case "$OPT" in
       1)
-        download_kali
-        if check_installed; then
-          main_menu
-          return
-        fi
+        download_kali && main_menu && return
         ;;
       2|exit) exit 0 ;;
-      *) echo -e "\n ${W}[!]${R} Option invalide.${N}"; sleep 0.8 ;;
+      *) sleep 0.8 ;;
     esac
   done
 }
 
 clear
 show_ascii
-
-if ! command -v proot-distro &>/dev/null; then
-  echo -e " ${W}[!]${R} Installation de proot-distro...${N}"
-  pkg install proot-distro -y
-fi
-
+check_proot
 if check_installed; then
   main_menu
 else
