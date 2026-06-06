@@ -58,7 +58,7 @@ progress_bar() {
 
 install_deps() {
   echo -e "\n${R}  [*]${W} Vérification des dépendances...${N}\n"
-  local deps=("proot" "wget" "curl" "tar" "git")
+  local deps=("proot-distro" "wget" "curl" "git")
   for dep in "${deps[@]}"; do
     echo -ne "  ${R}+${N} ${W}${dep}${D}..."
     if command -v "$dep" &>/dev/null; then
@@ -74,106 +74,48 @@ install_deps() {
 download_kali() {
   clear
   show_ascii
-  echo -e "${R}  [*]${W} Téléchargement de Kali Linux...${N}\n"
-
+  echo -e "${R}  [*]${W} Installation de l'environnement Linux...${N}\n"
   install_deps
-
-  local ARCH; ARCH=$(uname -m)
-  local URL=""
-  case "$ARCH" in
-    aarch64) URL="https://kali.download/nethunter-images/current/rootfs/kalifs-arm64-minimal.tar.xz" ;;
-    armv7l)  URL="https://kali.download/nethunter-images/current/rootfs/kalifs-armhf-minimal.tar.xz" ;;
-    x86_64)  URL="https://kali.download/nethunter-images/current/rootfs/kalifs-amd64-minimal.tar.xz" ;;
-    *)
-      echo -e "${W}  [!] Architecture non supportée: ${R}$ARCH${N}"
-      sleep 2; return 1 ;;
-  esac
-
-  mkdir -p "$KALI_DIR"
-  echo -e "  ${R}[*]${W} Architecture : ${R}${ARCH}${N}"
-  echo -e "  ${R}[*]${W} Source       : ${D}${URL}${N}\n"
-
-  wget -q --show-progress -O "$KALI_DIR/rootfs.tar.xz" "$URL"
-  echo -e "\n  ${R}[✓]${W} Téléchargement terminé${N}"
-
-  progress_bar "Extraction du rootfs"
-  cd "$KALI_DIR" && tar --no-same-owner -xf rootfs.tar.xz
-  local TAR_EXIT=$?
-  rm -f rootfs.tar.xz
-
-  if [ $TAR_EXIT -ne 0 ]; then
-    echo -e "\n  ${W}[!]${R} Extraction échouée (code $TAR_EXIT). Réessaie.${N}"
-    sleep 2; return 1
-  fi
-
-  progress_bar "Configuration de l'environnement"
-  echo -e "\n  ${R}[✓]${W} Kali Linux installé !${N}\n"
+  echo -e "  ${R}[*]${W} Téléchargement via proot-distro...${N}\n"
+  progress_bar "Téléchargement en cours"
+  proot-distro install ubuntu
+  echo -e "\n  ${R}[✓]${W} Environnement installé !${N}\n"
+  echo -e "  ${D}Lance l'option 1 pour démarrer.${N}\n"
+  sleep 1
 }
 
-get_rootfs() {
-  find "$KALI_DIR" -maxdepth 1 -type d -name "kali-*" 2>/dev/null | head -1
+check_installed() {
+  proot-distro list 2>/dev/null | grep -q "ubuntu" && return 0
+  # fallback check
+  [ -d "$PREFIX/var/lib/proot-distro/installed-rootfs/ubuntu" ] && return 0
+  return 1
 }
 
 launch_kali() {
-  local ROOTFS; ROOTFS=$(get_rootfs)
-  if [ -z "$ROOTFS" ]; then
-    echo -e "\n  ${W}[!]${R} Kali non installé.${N}"
-    sleep 1; return
-  fi
-
-  if [ ! -f "$ROOTFS/bin/bash" ]; then
-    echo -e "\n  ${W}[!]${R} Rootfs corrompu : /bin/bash introuvable.${N}"
-    echo -e "  ${D}Supprime ~/kali-fs et réinstalle.${N}"
-    sleep 3; return
+  if ! check_installed; then
+    echo -e "\n  ${W}[!]${R} Environnement non installé.${N}"
+    echo -e "  ${D}Lance l'option depuis le menu principal.${N}"
+    sleep 2; return
   fi
 
   clear
   show_ascii
-
-  echo -ne "  ${R}Pseudo : ${W}"
-  read -r USERNAME
-  [ -z "$USERNAME" ] && USERNAME="user"
-  echo -e "${N}"
-  echo -e "  ${D}Connexion en cours...${N}"
-
-  proot \
-    --link2symlink \
-    -0 \
-    -r "$ROOTFS" \
-    -b /dev \
-    -b /proc \
-    -b /sys \
-    -b "$HOME:/root/LinuxUser" \
-    -w "/root" \
-    /bin/bash --login
-
-  local EXIT_CODE=$?
-  if [ $EXIT_CODE -ne 0 ]; then
-    echo -e "\n  ${W}[!]${R} proot a quitté avec le code : ${EXIT_CODE}${N}"
-    echo -e "  ${D}Essaie : pkg update && pkg upgrade proot${N}"
-  fi
+  echo -e "  ${D}Connexion en cours...${N}\n"
+  proot-distro login ubuntu
 
   echo -e "\n  ${R}[*]${W} Session terminée.${N}"
   sleep 1
 }
 
 update_kali() {
-  local ROOTFS; ROOTFS=$(get_rootfs)
-  if [ -z "$ROOTFS" ]; then
-    echo -e "\n  ${W}[!]${R} Kali non installé.${N}"
+  if ! check_installed; then
+    echo -e "\n  ${W}[!]${R} Environnement non installé.${N}"
     sleep 2; return
   fi
   clear
   show_ascii
-  echo -e "${R}  [*]${W} Mise à jour de Kali Linux...${N}\n"
-  proot \
-    --link2symlink \
-    -0 \
-    -r "$ROOTFS" \
-    -b /dev -b /proc -b /sys \
-    -w "/root" \
-    /bin/bash -c "apt update && apt upgrade -y && apt autoremove -y"
-
+  echo -e "${R}  [*]${W} Mise à jour...${N}\n"
+  proot-distro login ubuntu -- bash -c "apt update && apt upgrade -y && apt autoremove -y"
   echo -e "\n  ${R}[✓]${W} Mise à jour terminée.${N}"
   sleep 2
 }
@@ -208,12 +150,10 @@ tools_menu() {
     for tool in "${tool_keys[@]}"; do
       if [ "$idx" -eq "$CHOICE" ] 2>/dev/null; then
         local url="${TOOLS[$tool]}"
-        echo -e "\n  ${R}[*]${W} Installation de ${R}${tool}${N}..."
+        echo -e "\n  ${R}[*]${W} Installation de ${R}${tool}${N} dans Ubuntu..."
         if [ -n "$url" ]; then
-          mkdir -p "$HOME/tools"
-          git clone "$url" "$HOME/tools/$tool" 2>&1 | \
-            while IFS= read -r line; do echo "  ${D}  $line${N}"; done
-          echo -e "\n  ${R}[✓]${W} ${tool} → ${R}~/tools/${tool}${N}"
+          proot-distro login ubuntu -- bash -c "apt install -y ${tool} 2>/dev/null || git clone ${url} /root/tools/${tool}"
+          echo -e "\n  ${R}[✓]${W} ${tool} installé${N}"
         else
           echo -e "  ${W}[!]${R} Aucun dépôt pour ${tool}.${N}"
           echo -e "  ${D}    Modifie config.sh pour ajouter le lien.${N}"
@@ -233,7 +173,7 @@ help_cmd() {
   echo -e "${R}  ──────────────────────────────────${N}"
   echo -e "  ${R}help${N}    ${D}→${N}  afficher cette aide"
   echo -e "  ${R}tools${N}   ${D}→${N}  menu des tools"
-  echo -e "  ${R}update${N}  ${D}→${N}  mettre à jour kali"
+  echo -e "  ${R}update${N}  ${D}→${N}  mettre à jour"
   echo -e "  ${R}clear${N}   ${D}→${N}  effacer l'écran"
   echo -e "  ${R}exit${N}    ${D}→${N}  quitter"
   echo -e "${R}  ──────────────────────────────────${N}\n"
@@ -244,8 +184,8 @@ main_menu() {
     clear
     show_ascii
     echo -e "${R}  ──────────────────────────────────${N}\n"
-    echo -e "  ${R}[${W}1${R}]${N}  ${W}Lancer Kali Linux${N}"
-    echo -e "  ${R}[${W}2${R}]${N}  ${W}Mettre à jour Kali${N}"
+    echo -e "  ${R}[${W}1${R}]${N}  ${W}Lancer Linux${N}"
+    echo -e "  ${R}[${W}2${R}]${N}  ${W}Mettre à jour${N}"
     echo -e "  ${R}[${W}3${R}]${N}  ${W}Sortir${N}"
     echo -e "\n${R}  ──────────────────────────────────${N}"
     echo -ne "\n  ${R}» ${W}"
@@ -270,23 +210,23 @@ install_menu() {
   clear
   show_ascii
   echo -e "${R}  ──────────────────────────────────${N}\n"
-  echo -e "  ${R}[${W}1${R}]${N}  ${W}Télécharger Kali Linux${N}"
+  echo -e "  ${R}[${W}1${R}]${N}  ${W}Installer l'environnement Linux${N}"
   echo -e "\n${R}  ──────────────────────────────────${N}"
   echo -ne "\n  ${R}» ${W}"
   read -r OPT
   echo -ne "${N}"
   case "$OPT" in
-    1) download_kali ;;
+    1) download_kali; main_menu ;;
     exit) exit 0 ;;
     *) echo -e "\n  ${W}[!]${R} Option invalide.${N}"; sleep 1; install_menu ;;
   esac
 }
 
+# ── Démarrage ──────────────────────────────────────────
 clear
 show_ascii
 
-ROOTFS=$(get_rootfs)
-if [ -z "$ROOTFS" ]; then
+if ! check_installed; then
   install_menu
 fi
 
