@@ -1,7 +1,6 @@
 #!/bin/bash
 
 declare -A TOOLS
-
 TOOLS["nmap"]=""
 TOOLS["sqlmap"]=""
 TOOLS["hydra"]=""
