@@ -61,8 +61,7 @@ progress_bar() {
 }
 
 check_installed() {
-  command -v proot-distro &>/dev/null || return 1
-  proot-distro list 2>/dev/null | grep -qi "ubuntu"
+  proot-distro list 2>&1 | grep -q "ubuntu"
 }
 
 check_proot() {
