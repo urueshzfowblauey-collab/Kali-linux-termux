@@ -472,6 +472,28 @@ run_doctor() {
   fi
 }
 
+run_exercice() {
+  local EXERCICE_SCRIPT
+  EXERCICE_SCRIPT="$(dirname "$0")/exercice.sh"
+  if [[ -f "$EXERCICE_SCRIPT" ]]; then
+    bash "$EXERCICE_SCRIPT"
+  else
+    echo -e "\n ${R}[✗] exercice.sh introuvable.${N}"
+    sleep 2
+  fi
+}
+
+run_vpn() {
+  local VPN_SCRIPT
+  VPN_SCRIPT="$(dirname "$0")/vpn.sh"
+  if [[ -f "$VPN_SCRIPT" ]]; then
+    bash "$VPN_SCRIPT"
+  else
+    echo -e "\n ${R}[✗] vpn.sh introuvable.${N}"
+    sleep 2
+  fi
+}
+
 help_cmd() {
   echo -e "\n${R} ──────────────────────────────────${N}"
   echo -e "${W} COMMANDES${N}"
@@ -489,6 +511,8 @@ help_cmd() {
   echo -e " ${R}p${N}  ${D}→${N} Passwords"
   echo -e " ${R}c${N}  ${D}→${N} Clean"
   echo -e " ${R}d${N}  ${D}→${N} Doctor"
+  echo -e " ${R}e${N}  ${D}→${N} Exercices OSINT"
+  echo -e " ${R}v${N}  ${D}→${N} VPN"
   echo -e " ${R}0${N}  ${D}→${N} Quitter"
   echo -e " ${R}help${N}  ${D}→${N} Cette aide"
   echo -e " ${R}clear${N} ${D}→${N} Effacer"
@@ -513,6 +537,8 @@ main_menu() {
     echo -e " ${R}[${W}p${R}]${N} ${W}Passwords${N}"
     echo -e " ${R}[${W}c${R}]${N} ${W}Clean${N}"
     echo -e " ${R}[${W}d${R}]${N} ${W}Doctor${N}"
+    echo -e " ${R}[${W}e${R}]${N} ${W}Exercices OSINT${N}"
+    echo -e " ${R}[${W}v${R}]${N} ${W}VPN${N}"
     echo -e " ${R}[${W}0${R}]${N} ${W}Quitter${N}"
     echo -e "\n${R} ──────────────────────────────────${N}"
     echo -ne "\n ${R}» ${W}"
@@ -541,6 +567,8 @@ main_menu() {
       p|P) run_pass ;;
       c|C) run_clean ;;
       d|D) run_doctor ;;
+      e|E) run_exercice ;;
+      v|V) run_vpn ;;
       0) clear; show_ascii; echo -e "\n ${D}À bientôt.${N}\n"; exit 0 ;;
       help)  help_cmd; echo -ne " ${D}Entrée...${N}"; read -r ;;
       clear) clear ;;
