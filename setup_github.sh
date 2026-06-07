@@ -10,7 +10,6 @@ N='\033[0m'
 echo -e "${R}╔══════════════════════════════════════╗${N}"
 echo -e "${R}║ ${W}KaliTermux — Setup GitHub Push    ${R}║${N}"
 echo -e "${R}╚══════════════════════════════════════╝${N}\n"
-
 echo -ne "${Y}[?] Pseudo GitHub : ${W}"
 read -r GH_USER
 echo -ne "${Y}[?] Email GitHub : ${W}"
@@ -29,7 +28,7 @@ git config --global user.email "$GH_EMAIL"
 cd "$(dirname "$0")" || exit 1
 [ ! -d ".git" ] && git init
 
-for f in kali.sh config.sh setup_github.sh; do
+for f in kali.sh config.sh setup_github.sh backup.sh update.sh; do
   [ -f "$f" ] && git add "$f"
 done
 [ -f README.md ] && git add README.md
@@ -45,7 +44,6 @@ echo -e "${R}║ ${Y}2.${W} Crée : ${G}${GH_REPO}${R}"
 echo -e "${R}║ ${Y}3.${W} Public, sans README              ${R}║${N}"
 echo -e "${R}║ ${Y}4.${W} Settings > Tokens (classic)      ${R}║${N}"
 echo -e "${R}╚══════════════════════════════════════╝${N}"
-
 echo -ne "\n${Y}[?] Repo créé + token prêt ? [o/N] : ${W}"
 read -r READY
 echo -ne "${N}"
