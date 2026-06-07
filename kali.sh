@@ -2,19 +2,34 @@
 
 source "$(dirname "$0")/config.sh" 2>/dev/null || {
   declare -A TOOLS
-  TOOLS["nmap"]=""
-  TOOLS["sqlmap"]=""
-  TOOLS["hydra"]=""
-  TOOLS["nikto"]=""
-  TOOLS["john"]=""
-  TOOLS["aircrack-ng"]=""
-  TOOLS["hashcat"]=""
-  TOOLS["metasploit-framework"]=""
-  TOOLS["beef-xss"]=""
-  TOOLS["gobuster"]=""
-  TOOLS["dirb"]=""
-  TOOLS["netcat-openbsd"]=""
+  TOOLS["nmap"]="nmap"
+  TOOLS["sqlmap"]="sqlmap"
+  TOOLS["hydra"]="hydra"
+  TOOLS["nikto"]="nikto"
+  TOOLS["john"]="john"
+  TOOLS["aircrack-ng"]="aircrack-ng"
+  TOOLS["hashcat"]="hashcat"
+  TOOLS["metasploit-framework"]="msfconsole"
+  TOOLS["beef-xss"]="beef"
+  TOOLS["gobuster"]="gobuster"
+  TOOLS["dirb"]="dirb"
+  TOOLS["netcat-openbsd"]="nc"
 }
+
+# Nom du paquet apt → binaire réel
+declare -A TOOL_BIN
+TOOL_BIN["nmap"]="nmap"
+TOOL_BIN["sqlmap"]="sqlmap"
+TOOL_BIN["hydra"]="hydra"
+TOOL_BIN["nikto"]="nikto"
+TOOL_BIN["john"]="john"
+TOOL_BIN["aircrack-ng"]="aircrack-ng"
+TOOL_BIN["hashcat"]="hashcat"
+TOOL_BIN["metasploit-framework"]="msfconsole"
+TOOL_BIN["beef-xss"]="beef"
+TOOL_BIN["gobuster"]="gobuster"
+TOOL_BIN["dirb"]="dirb"
+TOOL_BIN["netcat-openbsd"]="nc"
 
 TOOL_ORDER=("nmap" "sqlmap" "hydra" "nikto" "john" "aircrack-ng" "hashcat" "metasploit-framework" "beef-xss" "gobuster" "dirb" "netcat-openbsd")
 
@@ -263,6 +278,7 @@ update_tools_menu() {
   done
 }
 
+# ─── FIX : utilise TOOL_BIN pour lancer le bon binaire ───
 linux_tools_menu() {
   while true; do
     clear
@@ -285,12 +301,13 @@ linux_tools_menu() {
     local i=1
     for tool in "${TOOL_ORDER[@]}"; do
       if [[ "$i" -eq "$CHOICE" ]]; then
-        local installed
-        installed=$(proot-distro login ubuntu -- bash -c "command -v ${tool} 2>/dev/null")
-        if [[ -z "$installed" ]]; then
-          proot-distro login ubuntu -- bash -c "apt update -qq && apt install -y ${tool}"
-        fi
-        proot-distro login ubuntu -- bash -c "${tool}"
+        # Récupère le vrai binaire depuis TOOL_BIN
+        local bin="${TOOL_BIN[$tool]:-$tool}"
+        # Installe si absent
+        proot-distro login ubuntu -- bash -c \
+          "command -v '${bin}' &>/dev/null || apt install -y '${tool}' -qq" 2>/dev/null
+        # Lance le binaire
+        proot-distro login ubuntu -- bash -c "${bin}"
         echo -ne "\n ${D}Entrée...${N}"
         read -r
         break
@@ -352,10 +369,7 @@ linux_menu() {
     read -r OPT
     echo -ne "${N}"
     case "$OPT" in
-      1)
-        clear; show_ascii
-        proot-distro login ubuntu
-        ;;
+      1) clear; show_ascii; proot-distro login ubuntu ;;
       2) linux_tools_menu ;;
       3) get_sys_info ;;
       4)
@@ -413,6 +427,18 @@ remove_kali() {
   fi
 }
 
+# ─── BACKUP ─────────────────────────────────────────
+run_backup() {
+  local BACKUP_SCRIPT
+  BACKUP_SCRIPT="$(dirname "$0")/backup.sh"
+  if [[ -f "$BACKUP_SCRIPT" ]]; then
+    bash "$BACKUP_SCRIPT"
+  else
+    echo -e "\n ${R}[✗] backup.sh introuvable.${N}"
+    sleep 2
+  fi
+}
+
 help_cmd() {
   echo -e "\n${R} ──────────────────────────────────${N}"
   echo -e "${W} COMMANDES${N}"
@@ -426,6 +452,7 @@ help_cmd() {
   echo -e " ${R}7${N}  ${D}→${N} Réinitialiser Linux"
   echo -e " ${R}8${N}  ${D}→${N} Désinstaller Linux"
   echo -e " ${R}9${N}  ${D}→${N} Updater le projet"
+  echo -e " ${R}b${N}  ${D}→${N} Backup"
   echo -e " ${R}0${N}  ${D}→${N} Quitter"
   echo -e " ${R}help${N}  ${D}→${N} Cette aide"
   echo -e " ${R}clear${N} ${D}→${N} Effacer"
@@ -446,6 +473,7 @@ main_menu() {
     echo -e " ${R}[${W}7${R}]${N} ${W}Réinitialiser Linux${N}"
     echo -e " ${R}[${W}8${R}]${N} ${W}Désinstaller Linux${N}"
     echo -e " ${R}[${W}9${R}]${N} ${W}Updater le projet${N}"
+    echo -e " ${R}[${W}b${R}]${N} ${W}Backup${N}"
     echo -e " ${R}[${W}0${R}]${N} ${W}Quitter${N}"
     echo -e "\n${R} ──────────────────────────────────${N}"
     echo -ne "\n ${R}» ${W}"
@@ -470,6 +498,7 @@ main_menu() {
           sleep 2
         fi
         ;;
+      b|B) run_backup ;;
       0) clear; show_ascii; echo -e "\n ${D}À bientôt.${N}\n"; exit 0 ;;
       help)  help_cmd; echo -ne " ${D}Entrée...${N}"; read -r ;;
       clear) clear ;;
@@ -491,9 +520,7 @@ install_menu() {
     read -r OPT
     echo -ne "${N}"
     case "$OPT" in
-      1)
-        download_kali && main_menu && return
-        ;;
+      1) download_kali && main_menu && return ;;
       2|exit) exit 0 ;;
       *) sleep 0.8 ;;
     esac
