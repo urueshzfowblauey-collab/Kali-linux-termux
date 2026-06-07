@@ -439,6 +439,39 @@ run_backup() {
   fi
 }
 
+run_pass() {
+  local PASS_SCRIPT
+  PASS_SCRIPT="$(dirname "$0")/pass.sh"
+  if [[ -f "$PASS_SCRIPT" ]]; then
+    bash "$PASS_SCRIPT"
+  else
+    echo -e "\n ${R}[✗] pass.sh introuvable.${N}"
+    sleep 2
+  fi
+}
+
+run_clean() {
+  local CLEAN_SCRIPT
+  CLEAN_SCRIPT="$(dirname "$0")/clean.sh"
+  if [[ -f "$CLEAN_SCRIPT" ]]; then
+    bash "$CLEAN_SCRIPT"
+  else
+    echo -e "\n ${R}[✗] clean.sh introuvable.${N}"
+    sleep 2
+  fi
+}
+
+run_doctor() {
+  local DOCTOR_SCRIPT
+  DOCTOR_SCRIPT="$(dirname "$0")/doctor.sh"
+  if [[ -f "$DOCTOR_SCRIPT" ]]; then
+    bash "$DOCTOR_SCRIPT"
+  else
+    echo -e "\n ${R}[✗] doctor.sh introuvable.${N}"
+    sleep 2
+  fi
+}
+
 help_cmd() {
   echo -e "\n${R} ──────────────────────────────────${N}"
   echo -e "${W} COMMANDES${N}"
@@ -453,6 +486,9 @@ help_cmd() {
   echo -e " ${R}8${N}  ${D}→${N} Désinstaller Linux"
   echo -e " ${R}9${N}  ${D}→${N} Updater le projet"
   echo -e " ${R}b${N}  ${D}→${N} Backup"
+  echo -e " ${R}p${N}  ${D}→${N} Passwords"
+  echo -e " ${R}c${N}  ${D}→${N} Clean"
+  echo -e " ${R}d${N}  ${D}→${N} Doctor"
   echo -e " ${R}0${N}  ${D}→${N} Quitter"
   echo -e " ${R}help${N}  ${D}→${N} Cette aide"
   echo -e " ${R}clear${N} ${D}→${N} Effacer"
@@ -474,6 +510,9 @@ main_menu() {
     echo -e " ${R}[${W}8${R}]${N} ${W}Désinstaller Linux${N}"
     echo -e " ${R}[${W}9${R}]${N} ${W}Updater le projet${N}"
     echo -e " ${R}[${W}b${R}]${N} ${W}Backup${N}"
+    echo -e " ${R}[${W}p${R}]${N} ${W}Passwords${N}"
+    echo -e " ${R}[${W}c${R}]${N} ${W}Clean${N}"
+    echo -e " ${R}[${W}d${R}]${N} ${W}Doctor${N}"
     echo -e " ${R}[${W}0${R}]${N} ${W}Quitter${N}"
     echo -e "\n${R} ──────────────────────────────────${N}"
     echo -ne "\n ${R}» ${W}"
@@ -499,6 +538,9 @@ main_menu() {
         fi
         ;;
       b|B) run_backup ;;
+      p|P) run_pass ;;
+      c|C) run_clean ;;
+      d|D) run_doctor ;;
       0) clear; show_ascii; echo -e "\n ${D}À bientôt.${N}\n"; exit 0 ;;
       help)  help_cmd; echo -ne " ${D}Entrée...${N}"; read -r ;;
       clear) clear ;;
