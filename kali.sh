@@ -523,36 +523,85 @@ main_menu() {
   while true; do
     clear
     show_ascii
+
+    # ── Détection Ubuntu ──────────────────────────────
+    local linux_status linux_label linux_color
+    if ! command -v proot-distro &>/dev/null; then
+      linux_status="proot-distro manquant"
+      linux_color="$R"
+    elif check_installed; then
+      linux_status="Ubuntu installé"
+      linux_color="$G"
+    else
+      linux_status="Ubuntu non installé"
+      linux_color="$R"
+    fi
+
+    # ── Détection scripts optionnels ─────────────────
+    local sd
+    sd="$(dirname "$0")"
+    local scripts_ok=0 scripts_total=5
+    [[ -f "$sd/pass.sh" ]]     && scripts_ok=$((scripts_ok+1))
+    [[ -f "$sd/clean.sh" ]]    && scripts_ok=$((scripts_ok+1))
+    [[ -f "$sd/doctor.sh" ]]   && scripts_ok=$((scripts_ok+1))
+    [[ -f "$sd/exercice.sh" ]] && scripts_ok=$((scripts_ok+1))
+    [[ -f "$sd/vpn.sh" ]]      && scripts_ok=$((scripts_ok+1))
+
+    echo -e "${R} ──────────────────────────────────${N}"
+    echo -e " ${D}Linux  :${N} ${linux_color}${linux_status}${N}"
+    echo -e " ${D}Scripts:${N} ${W}${scripts_ok}/${scripts_total} détectés${N}"
     echo -e "${R} ──────────────────────────────────${N}\n"
-    echo -e " ${R}[${W}1${R}]${N} ${W}Lancer Linux${N}"
-    echo -e " ${R}[${W}2${R}]${N} ${W}Mettre à jour Linux${N}"
-    echo -e " ${R}[${W}3${R}]${N} ${W}Mettre à jour les outils${N}"
-    echo -e " ${R}[${W}4${R}]${N} ${W}Installer un outil${N}"
-    echo -e " ${R}[${W}5${R}]${N} ${W}Infos système${N}"
-    echo -e " ${R}[${W}6${R}]${N} ${W}Sécurité rapide${N}"
-    echo -e " ${R}[${W}7${R}]${N} ${W}Réinitialiser Linux${N}"
-    echo -e " ${R}[${W}8${R}]${N} ${W}Désinstaller Linux${N}"
+
+    # ── Menu — items grisés si Ubuntu absent ─────────
+    if check_installed 2>/dev/null; then
+      echo -e " ${R}[${W}1${R}]${N} ${W}Lancer Linux${N}"
+      echo -e " ${R}[${W}2${R}]${N} ${W}Mettre à jour Linux${N}"
+      echo -e " ${R}[${W}3${R}]${N} ${W}Mettre à jour les outils${N}"
+      echo -e " ${R}[${W}4${R}]${N} ${W}Installer un outil${N}"
+      echo -e " ${R}[${W}5${R}]${N} ${W}Infos système${N}"
+      echo -e " ${R}[${W}6${R}]${N} ${W}Sécurité rapide${N}"
+      echo -e " ${R}[${W}7${R}]${N} ${W}Réinitialiser Linux${N}"
+      echo -e " ${R}[${W}8${R}]${N} ${W}Désinstaller Linux${N}"
+    else
+      echo -e " ${R}[${W}1${R}]${N} ${R}Installer Linux${N}"
+      echo -e " ${D}[2]  Mettre à jour Linux       (Linux requis)${N}"
+      echo -e " ${D}[3]  Mettre à jour les outils  (Linux requis)${N}"
+      echo -e " ${D}[4]  Installer un outil        (Linux requis)${N}"
+      echo -e " ${D}[5]  Infos système             (Linux requis)${N}"
+      echo -e " ${D}[6]  Sécurité rapide           (Linux requis)${N}"
+      echo -e " ${D}[7]  Réinitialiser Linux       (Linux requis)${N}"
+      echo -e " ${D}[8]  Désinstaller Linux        (Linux requis)${N}"
+    fi
+
     echo -e " ${R}[${W}9${R}]${N} ${W}Updater le projet${N}"
     echo -e " ${R}[${W}b${R}]${N} ${W}Backup${N}"
-    echo -e " ${R}[${W}p${R}]${N} ${W}Passwords${N}"
-    echo -e " ${R}[${W}c${R}]${N} ${W}Clean${N}"
-    echo -e " ${R}[${W}d${R}]${N} ${W}Doctor${N}"
-    echo -e " ${R}[${W}e${R}]${N} ${W}Exercices OSINT${N}"
-    echo -e " ${R}[${W}v${R}]${N} ${W}VPN${N}"
+
+    [[ -f "$sd/pass.sh" ]]     && echo -e " ${R}[${W}p${R}]${N} ${W}Passwords${N}"        || echo -e " ${D}[p]  Passwords              (pass.sh manquant)${N}"
+    [[ -f "$sd/clean.sh" ]]    && echo -e " ${R}[${W}c${R}]${N} ${W}Clean${N}"             || echo -e " ${D}[c]  Clean                  (clean.sh manquant)${N}"
+    [[ -f "$sd/doctor.sh" ]]   && echo -e " ${R}[${W}d${R}]${N} ${W}Doctor${N}"            || echo -e " ${D}[d]  Doctor                 (doctor.sh manquant)${N}"
+    [[ -f "$sd/exercice.sh" ]] && echo -e " ${R}[${W}e${R}]${N} ${W}Exercices OSINT${N}"   || echo -e " ${D}[e]  Exercices OSINT        (exercice.sh manquant)${N}"
+    [[ -f "$sd/vpn.sh" ]]      && echo -e " ${R}[${W}v${R}]${N} ${W}VPN${N}"              || echo -e " ${D}[v]  VPN                    (vpn.sh manquant)${N}"
+
     echo -e " ${R}[${W}0${R}]${N} ${W}Quitter${N}"
     echo -e "\n${R} ──────────────────────────────────${N}"
     echo -ne "\n ${R}» ${W}"
     read -r OPT
     echo -ne "${N}"
     case "$OPT" in
-      1) check_proot && check_installed && linux_menu || sleep 2 ;;
-      2) update_kali ;;
-      3) update_tools_menu ;;
-      4) tools_menu ;;
-      5) get_sys_info ;;
-      6) security_menu ;;
-      7) reset_kali ;;
-      8) remove_kali ;;
+      1)
+        if check_installed 2>/dev/null; then
+          check_proot && linux_menu
+        else
+          download_kali && main_menu && return
+        fi
+        ;;
+      2) check_installed && update_kali || { echo -e "\n ${R}[✗] Ubuntu non installé.${N}"; sleep 2; } ;;
+      3) check_installed && update_tools_menu || { echo -e "\n ${R}[✗] Ubuntu non installé.${N}"; sleep 2; } ;;
+      4) check_installed && tools_menu || { echo -e "\n ${R}[✗] Ubuntu non installé.${N}"; sleep 2; } ;;
+      5) check_installed && get_sys_info || { echo -e "\n ${R}[✗] Ubuntu non installé.${N}"; sleep 2; } ;;
+      6) check_installed && security_menu || { echo -e "\n ${R}[✗] Ubuntu non installé.${N}"; sleep 2; } ;;
+      7) check_installed && reset_kali || { echo -e "\n ${R}[✗] Ubuntu non installé.${N}"; sleep 2; } ;;
+      8) check_installed && remove_kali || { echo -e "\n ${R}[✗] Ubuntu non installé.${N}"; sleep 2; } ;;
       9)
         local UPDATE_SCRIPT
         UPDATE_SCRIPT="$(dirname "$0")/update.sh"
@@ -600,8 +649,4 @@ install_menu() {
 clear
 show_ascii
 check_proot
-if check_installed; then
-  main_menu
-else
-  install_menu
-fi
+main_menu
