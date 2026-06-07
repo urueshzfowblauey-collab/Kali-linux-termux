@@ -34,52 +34,47 @@ show_ascii() {
 }
 
 # ─── STATUT VPN ─────────────────────────────────────
+linux_ok() {
+  command -v proot-distro &>/dev/null && proot-distro list 2>&1 | grep -q "ubuntu"
+}
+
 vpn_status() {
   local running=false
-  local pid=""
-  local iface=""
-  local ip_vpn=""
   local ip_pub=""
-
-  if [[ -f "$PID_FILE" ]]; then
-    pid=$(cat "$PID_FILE" 2>/dev/null)
-    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
-      running=true
-    else
-      rm -f "$PID_FILE"
-    fi
-  fi
-
-  if proot-distro list 2>&1 | grep -q "ubuntu"; then
-    iface=$(proot-distro login ubuntu -- bash -c "ip link show tun0 2>/dev/null | head -1 | cut -d: -f2 | tr -d ' '" 2>/dev/null)
-    if [[ -n "$iface" ]]; then
-      running=true
-      ip_vpn=$(proot-distro login ubuntu -- bash -c "ip addr show tun0 2>/dev/null | grep 'inet ' | awk '{print \$2}'" 2>/dev/null)
-    fi
-  fi
-
-  ip_pub=$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null || echo "non disponible")
 
   echo -e "${R} ──────────────────────────────────${N}"
   echo -e "${W} STATUT VPN${N}"
   echo -e "${R} ──────────────────────────────────${N}\n"
 
-  if $running; then
-    echo -e " ${G}[●] VPN ACTIF${N}"
-    [[ -n "$ip_vpn" ]] && echo -e " ${D}Interface :${N} ${W}tun0 (${ip_vpn})${N}"
-    [[ -n "$pid" ]]    && echo -e " ${D}PID       :${N} ${W}${pid}${N}"
+  if ! command -v proot-distro &>/dev/null; then
+    echo -e " ${Y}[!] proot-distro non installé${N}"
+    echo -e " ${D}Lance : pkg install proot-distro${N}"
+  elif ! proot-distro list 2>&1 | grep -q "ubuntu"; then
+    echo -e " ${Y}[!] Ubuntu non installé${N}"
+    echo -e " ${D}Lance kali.sh → option 1 pour installer Linux${N}"
   else
-    echo -e " ${R}[○] VPN INACTIF${N}"
+    local iface ip_vpn
+    iface=$(proot-distro login ubuntu -- bash -c "ip link show tun0 2>/dev/null | head -1" 2>/dev/null)
+    if [[ -n "$iface" ]]; then
+      running=true
+      ip_vpn=$(proot-distro login ubuntu -- bash -c "ip addr show tun0 2>/dev/null | grep 'inet ' | awk '{print \$2}'" 2>/dev/null)
+      echo -e " ${G}[●] VPN ACTIF — tun0 ${ip_vpn}${N}"
+    else
+      echo -e " ${R}[○] VPN INACTIF${N}"
+    fi
   fi
 
-  echo -e " ${D}IP publique :${N} ${W}${ip_pub}${N}"
+  echo -ne " ${D}IP publique : ${N}"
+  ip_pub=$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null || echo "non disponible")
+  echo -e "${W}${ip_pub}${N}"
   echo -e "\n${R} ──────────────────────────────────${N}"
 }
 
 # ─── INSTALLER OPENVPN ──────────────────────────────
 install_openvpn() {
-  if ! proot-distro list 2>&1 | grep -q "ubuntu"; then
-    echo -e "\n ${R}[✗] Linux non installé.${N}"; sleep 2; return 1
+  if ! linux_ok; then
+    echo -e "\n ${R}[✗] Ubuntu non installé. Lance kali.sh → option 1.${N}"
+    sleep 2; return 1
   fi
 
   local installed
@@ -105,7 +100,6 @@ list_profiles() {
     echo -e " ${W}${VPN_DIR}/${N}\n"
     return 1
   fi
-
   echo -e "\n ${D}Profils disponibles :${N}\n"
   local idx=1
   for f in "$VPN_DIR"/*.ovpn; do
@@ -211,6 +205,11 @@ connect_vpn() {
   echo -e "${W} CONNEXION VPN${N}"
   echo -e "${R} ──────────────────────────────────${N}"
 
+  if ! linux_ok; then
+    echo -e "\n ${R}[✗] Ubuntu non installé. Lance kali.sh → option 1.${N}"
+    echo -ne "\n ${D}Entrée...${N}"; read -r; return
+  fi
+
   install_openvpn || return
 
   list_profiles || {
@@ -287,6 +286,11 @@ disconnect_vpn() {
   echo -e "${W} DÉCONNEXION VPN${N}"
   echo -e "${R} ──────────────────────────────────${N}\n"
 
+  if ! linux_ok; then
+    echo -e " ${R}[✗] Ubuntu non installé.${N}"
+    echo -ne "\n ${D}Entrée...${N}"; read -r; return
+  fi
+
   proot-distro login ubuntu -- bash -c \
     "pid=\$(cat /tmp/openvpn.pid 2>/dev/null); [[ -n \"\$pid\" ]] && kill \$pid && echo KILLED || pkill openvpn && echo KILLED" 2>/dev/null | grep -q "KILLED"
 
@@ -315,7 +319,11 @@ show_vpn_log() {
   echo -e "${R} ──────────────────────────────────${N}"
   echo -e "${W} LOG OPENVPN${N}"
   echo -e "${R} ──────────────────────────────────${N}\n"
-  proot-distro login ubuntu -- bash -c "cat /tmp/openvpn.log 2>/dev/null | tail -30 || echo 'Aucun log disponible.'"
+  if ! linux_ok; then
+    echo -e " ${R}[✗] Ubuntu non installé.${N}"
+  else
+    proot-distro login ubuntu -- bash -c "cat /tmp/openvpn.log 2>/dev/null | tail -30 || echo 'Aucun log disponible.'"
+  fi
   echo -e "\n${R} ──────────────────────────────────${N}"
   echo -ne "\n ${D}Entrée...${N}"; read -r
 }
