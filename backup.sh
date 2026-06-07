@@ -45,7 +45,6 @@ progress_bar() {
   echo -e "${W}] ${G}OK${N}"
 }
 
-# ─── BACKUP SCRIPTS ─────────────────────────────────
 backup_scripts() {
   echo -e "\n ${R}──────────────────────────────────${N}"
   echo -e " ${W}SAUVEGARDE — SCRIPTS${N}"
@@ -71,14 +70,12 @@ backup_scripts() {
     fi
   done
 
-  # README si présent
   [[ -f "${SCRIPT_DIR}/README.md" ]] && cp "${SCRIPT_DIR}/README.md" "${DEST}/" && echo -e " ${G}✓${N} ${W}README.md${N}"
 
   echo -e "\n ${D}Scripts : ${G}${ok} OK${N} ${D}/ ${R}${fail} FAIL${N}"
   log "Scripts backup : OK=${ok} FAIL=${fail}"
 }
 
-# ─── BACKUP LINUX HOME ──────────────────────────────
 backup_linux_home() {
   echo -e "\n ${R}──────────────────────────────────${N}"
   echo -e " ${W}SAUVEGARDE — HOME LINUX${N}"
@@ -98,7 +95,6 @@ backup_linux_home() {
     "tar czf /tmp/home_backup.tar.gz /root 2>/dev/null && echo OK || echo FAIL" | grep -q "OK"
 
   if [[ $? -eq 0 ]]; then
-    # Copie depuis le filesystem proot vers Termux
     local PROOT_TMP
     PROOT_TMP=$(find ~/.local/share/proot-distro/installed-rootfs/ubuntu -name "home_backup.tar.gz" 2>/dev/null | head -1)
     if [[ -n "$PROOT_TMP" ]]; then
@@ -116,7 +112,6 @@ backup_linux_home() {
   fi
 }
 
-# ─── BACKUP BASH HISTORY ────────────────────────────
 backup_history() {
   echo -e "\n ${R}──────────────────────────────────${N}"
   echo -e " ${W}SAUVEGARDE — HISTORIQUE${N}"
@@ -125,13 +120,11 @@ backup_history() {
   local DEST="${BACKUP_DIR}/${BACKUP_NAME}/history"
   mkdir -p "$DEST"
 
-  # Termux history
   if [[ -f ~/.bash_history ]]; then
     cp ~/.bash_history "${DEST}/termux_bash_history" && \
       echo -e " ${G}✓${N} ${W}Historique Termux${N}"
   fi
 
-  # Linux history
   if proot-distro list 2>&1 | grep -q "ubuntu"; then
     proot-distro login ubuntu -- bash -c \
       "cat /root/.bash_history 2>/dev/null" > "${DEST}/linux_bash_history" 2>/dev/null && \
@@ -141,7 +134,6 @@ backup_history() {
   log "Historique backup : OK"
 }
 
-# ─── LISTER LES BACKUPS ─────────────────────────────
 list_backups() {
   echo -e "\n ${R}──────────────────────────────────${N}"
   echo -e " ${W}BACKUPS EXISTANTS${N}"
@@ -163,7 +155,6 @@ list_backups() {
   echo -e "\n ${D}Dossier : ${W}${BACKUP_DIR}${N}"
 }
 
-# ─── SUPPRIMER UN BACKUP ────────────────────────────
 delete_backup() {
   list_backups
   echo -e "\n ${R}──────────────────────────────────${N}"
@@ -189,7 +180,6 @@ delete_backup() {
   echo -e " ${R}[✗] Numéro invalide.${N}"
 }
 
-# ─── MENU PRINCIPAL ─────────────────────────────────
 main_menu() {
   while true; do
     clear
@@ -237,7 +227,6 @@ main_menu() {
   done
 }
 
-# ─── LAUNCH ─────────────────────────────────────────
 clear
 show_ascii
 log "===== Backup lancé ====="
