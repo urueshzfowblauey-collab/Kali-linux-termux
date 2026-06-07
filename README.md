@@ -41,7 +41,7 @@
 
 ```bash
 pkg update && pkg upgrade -y && pkg install git -y
-git clone https://github.com/TON_USER/Kali-linux-termux
+git clone https://github.com/urueshzfowblauey-collab/Kali-linux-termux
 cd Kali-linux-termux
 chmod +x *.sh
 bash kali.sh
