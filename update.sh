@@ -17,9 +17,9 @@ source "$(dirname "$0")/config.sh" 2>/dev/null || {
   TOOLS["netcat-openbsd"]=""
   TOOLS["curl"]=""
   TOOLS["wget"]=""
-}
 
-TOOL_ORDER=("nmap" "sqlmap" "hydra" "nikto" "john" "aircrack-ng" "hashcat" "metasploit-framework" "beef-xss" "gobuster" "dirb" "wfuzz" "netcat-openbsd" "curl" "wget")
+  TOOL_ORDER=("nmap" "sqlmap" "hydra" "nikto" "john" "aircrack-ng" "hashcat" "metasploit-framework" "beef-xss" "gobuster" "dirb" "wfuzz" "netcat-openbsd" "curl" "wget")
+}
 
 R='\033[0;31m'
 RB='\033[1;31m'
@@ -230,7 +230,6 @@ show_report() {
   log "Rapport — OK:${ok} FAIL:${fail} SKIP:${skip}"
 }
 
-# ─── MAIN ───────────────────────────────────────────
 clear
 show_ascii
 log "===== Début de la mise à jour ====="
